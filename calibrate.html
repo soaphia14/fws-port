@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en" class="h-100 w-100">
+
+<head>
+    <meta charset="UTF-8">
+    <title>WebGazer Test</title>
+
+    <!-- Load the webgazer.js file from /static -->
+    <script src="./static/webgazer.js"></script>
+    <!-- Bootstrap for styling -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM"
+        crossorigin="anonymous"></script>
+
+</head>
+
+<body class="h-100 w-100 d-flex m-0 p-0">
+    <div class="d-flex flex-column align-items-stretch justify-content-between h-100 w-100">
+        <div class="row">
+            <div class="p-5 col-4 align-items-center d-flex div0">
+                <button id="button0" class="calibrateBtns" style="z-index: 2;"
+                    onclick="handleClick(0)"></button>
+            </div>
+            <div class="p-5 col-4 align-items-center d-flex div1">
+                <button id="button1" class="calibrateBtns" style="z-index: 2;"
+                    onclick="handleClick(1)"></button>
+            </div>
+            <div class="p-5 col-4 align-items-center d-flex div2">
+                <button id="button2" class="calibrateBtns" style="z-index: 2;"
+                    onclick="handleClick(2)"></button>
+            </div>
+        </div>
+        <div class="row">
+            <div class="p-5 col-4 align-items-center d-flex div0">
+                <button id="button3" class="calibrateBtns" style="z-index: 2;"
+                    onclick="handleClick(3)"></button>
+            </div>
+            <div class="p-5 col-4 align-items-center d-flex div1">
+                <button id="button4" class="calibrateBtns" style="z-index: 2;"
+                    onclick="handleClick(4)"></button>
+            </div>
+            <div class="p-5 col-4 align-items-center d-flex div2">
+                <button id="button5" class="calibrateBtns" style="z-index: 2;"
+                    onclick="handleClick(5)"></button>
+            </div>
+        </div>
+        <div class="row">
+            <div class="p-5 col-4 align-items-center d-flex div0">
+                <button id="button6" class="calibrateBtns" style="z-index: 2;"
+                    onclick="handleClick(6)"></button>
+            </div>
+            <div class="p-5 col-4 align-items-center d-flex div1">
+                <button id="button7" class="calibrateBtns" style="z-index: 2;"
+                    onclick="handleClick(7)"></button>
+            </div>
+            <div class="p-5 col-4 align-items-center d-flex div2">
+                <button id="button8" class="calibrateBtns" style="z-index: 2;"
+                    onclick="handleClick(8)"></button>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="modal fade" id="instructionsModal">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Calibration Instructions</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <b>Instructions</b>
+                    <br>
+                    <p>Click on the circles 5 times or until it turns yellow.
+                        <br>
+                        Once all circles are yellow, you'll move onto viewing an image.
+                        <br><br>
+                        <i>This calibration is based off the calibration done for <a
+                                href="https://webgazer.cs.brown.edu/" target="_blank">WebGazer.js</a>.</i>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="moveOnModal" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Viewing An Image</h5>
+                </div>
+                <div class="modal-body">
+                    <b>Instructions</b>
+                    <br>
+                    <p>You've completed the calibration!
+                        <br>
+                        Click on the button below to now try viewing an image.
+                        <br><br>
+                        <i>This calibration is based off the calibration done for <a
+                                href="https://webgazer.cs.brown.edu/" target="_blank">WebGazer.js</a>.</i>
+                    </p>
+                </div>
+                <div class="modal-footer">
+                    <a href="/view.html"><button type="button" class="btn btn-primary">View Image</button></a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</body>
+<script>
+    var deg = [0, 0, 0, 0, 0, 0, 0, 0, 0]
+
+    // effect: handle button click, change degree clicked of the button
+    const handleClick = (num) => {
+        if (deg[num] < 5) {
+            deg[num] += 1
+        }
+        let color = "";
+        switch (deg[num]) {
+            case 1:
+                color = "#ebabab";
+                break;
+            case 2:
+                color = "#e68c8c";
+                break;
+            case 3:
+                color = "#d66767";
+                break;
+            case 4:
+                color = "#d12c2c";
+                break;
+            case 5:
+                color = "#f1f72f"; // yellow
+                moveOnIfDone();
+                break;
+        }
+
+        document.getElementById("button" + num).style.backgroundColor = color;
+        // showButton(randomButtonID(num))
+    }
+
+    const moveOnIfDone = () => {
+        for (var i = 0; i < 9; i ++) {
+            if (deg[i] != 5) {
+                return; // not done yet
+            }
+        }
+
+        // done
+        var moveOnModal = new bootstrap.Modal(document.getElementById("moveOnModal"))
+        moveOnModal.show()
+        
+    }
+
+    // init gaze
+    window.onload = function () {
+        // show instructions modal
+        var instructionsModal = new bootstrap.Modal(document.getElementById("instructionsModal"))
+        instructionsModal.show()
+
+        // init gaze
+        webgazer.setGazeListener(function (data, elapsedTime) {
+            if (!data) {
+                console.log("No data");
+                return;
+            }
+            // console.log('x:', data.x, 'y:', data.y, 't:', elapsedTime);
+        }).begin();
+    };
+</script>
+
+<style>
+    .calibrateBtns {
+        width: 20px;
+        height: 20px;
+        border-radius: 100%;
+        border-color: #d12c2c;
+        background-color: #fbe8e8;
+    }
+    .div1 {
+        justify-content: center;
+    }
+    .div2 {
+        justify-content: end;
+    }
+</style>
+
+</html>

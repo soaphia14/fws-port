@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>WebGazer Test</title>
+
+  <!-- Load the webgazer.js file from /static -->
+  <script src="./static/webgazer.js"></script>
+  <!-- Bootstrap for styling -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet"
+    integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM"
+    crossorigin="anonymous"></script>
+
+</head>
+
+<body>
+
+  <canvas id="mainImage"> </canvas>
+
+  <a href="/">
+    <button style="z-index: 2;" class="btn btn-outline-danger position-absolute">
+      Exit
+    </button>
+  </a>
+
+  <div class="modal fade" id="startModal">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Viewing An Image</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <b>Instructions</b>
+          <br>
+          <p>Observe the image, and the peripherals of the image will be desaturated. The exit button is in the top left.
+            <br><br>
+            To change the image: left/right arrow keys
+            <br>
+            To change the radius of saturation: up/down arrow keys to inc/dec radius
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // radius for the circle
+    var RADIUS = 800
+    
+    const imgs = ["niagarafalls.jpg", "cornell.webp", "elephants.jpg", "flowers.jpg", "library.webp", "marmotte.jpg"]
+    var imgIndex = 0;
+    const imgBase =  "./static/images/"
+
+    document.addEventListener('keydown', (e) => {
+      switch (e.key) {
+        case "ArrowUp":
+          RADIUS += 50; break;
+        case "ArrowDown":
+          RADIUS -= 50; break;
+        case "ArrowLeft":
+          imgIndex = (imgIndex + imgs.length - 1)%imgs.length;
+          myimage = new Image();
+          myimage.src = imgBase+"/"+imgs[imgIndex];
+          break;
+        case "ArrowRight":
+          imgIndex = (imgIndex + 1)%imgs.length;
+          myimage = new Image();
+          myimage.src = imgBase+"/"+imgs[imgIndex];
+          break;
+      }
+    })
+
+    // canvas, context
+    var cnv = document.getElementById("mainImage");
+    var cnx = cnv.getContext('2d');
+
+    // load image
+    var myimage = new Image();
+    myimage.src = imgBase+"/"+imgs[imgIndex]
+
+    function gray(center) {
+      // calculate width/height of the viewport
+      let vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0)
+      let vh = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0)
+
+      // set canvas to the width/height
+      cnv.width = vw;
+      cnv.height = vh;
+
+      // draw the image on the viewport
+      cnx.drawImage(myimage, 0, 0, vw, vh)
+      var imgPixels = cnx.getImageData(0, 0, cnx.canvas.clientWidth, cnx.canvas.clientHeight)
+
+      // set the desaturated portion
+      const HEIGHT = cnx.canvas.clientHeight;
+      const WIDTH = cnx.canvas.clientWidth;
+      for (var y = 0; y < HEIGHT; y++) {
+        for (var x = 0; x < WIDTH; x++) {
+          let dist = Math.pow((Math.pow((y - center.y), 2) + Math.pow((x - center.x), 2)), 0.5);
+
+          if (dist > RADIUS) {
+            var i = (y * 4) * WIDTH + x * 4;
+            var avg = (imgPixels.data[i] + imgPixels.data[i + 1] + imgPixels.data[i + 2]) / 3;
+            imgPixels.data[i] = avg;
+            imgPixels.data[i + 1] = avg;
+            imgPixels.data[i + 2] = avg; // 0: r, 1: g, 2: b, 3: transparency (0-255, 255 is visible)
+          }
+        }
+      }
+
+      // put new img
+      cnx.putImageData(imgPixels, 0, 0, 0, 0, imgPixels.width, imgPixels.height);
+    }
+
+    myimage.onload = () => {
+      gray({ x: 0, y: 0 })
+    }
+
+    // set circle to gaze
+    window.onload = function () {
+      // show instructions modal
+      var startModal = new bootstrap.Modal(document.getElementById("startModal"))
+      startModal.show()
+
+      // set gaze
+      webgazer.setGazeListener(function (data, elapsedTime) {
+        if (!data) {
+          console.log("No data");
+          return;
+        }
+
+        gray(data)
+        console.log(RADIUS)
+
+        console.log('x:', data.x, 'y:', data.y, 't:', elapsedTime);
+      }).begin();
+    };
+  </script>
+
+  <style>
+    body {
+      padding: 0;
+      margin: 0;
+    }
+
+    #mainImage {
+      z-index: 2;
+      position: absolute;
+      height: 100vh;
+      width: 100vw;
+    }
+
+    #webgazerGazeDot {
+      visibility: hidden !important;
+    }
+  </style>
+</body>
+
+</html>
