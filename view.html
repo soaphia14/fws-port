@@ -25,6 +25,9 @@
       Exit
     </button>
   </a>
+  <p style="margin-left: 350px;">The image/gif may take a few seconds to load!</p>
+  <br>
+  <p style="margin-left: 350px;" id="imageName"></p>
 
   <div class="modal fade" id="startModal">
     <div class="modal-dialog modal-dialog-centered">
@@ -36,7 +39,8 @@
         <div class="modal-body">
           <b>Instructions</b>
           <br>
-          <p>Observe the image, and the peripherals of the image will be desaturated. The exit button is in the top left.
+          <p>Observe the image, and the peripherals of the image will be desaturated. The exit button is in the top
+            left.
             <br><br>
             To change the image: left/right arrow keys
             <br>
@@ -47,13 +51,84 @@
     </div>
   </div>
 
-  <script>
+  <script> // type="text/typescript"
+
     // radius for the circle
-    var RADIUS = 800
-    
-    const imgs = ["niagarafalls.jpg", "cornell.webp", "elephants.jpg", "flowers.jpg", "library.webp", "marmotte.jpg"]
-    var imgIndex = 0;
-    const imgBase =  "./static/images/"
+    var RADIUS = 400
+
+    // type: image | gif, base: string
+    // interface Media {
+    //   type: "image" | "gif" : string;
+    //   base: string;
+    //   max_frames?: number;
+    //   delay_sec?: string;
+    // }
+
+    var mediaIndex = 0;
+    const media = [{
+      type: "gif",
+      base: "ghibli-flowers",
+      max_frames: 20,
+      delay_sec: "0.05s"
+    }, {
+      type: "gif",
+      base: "bird-flying",
+      max_frames: 80,
+      delay_sec: "0.08s"
+      // }, {
+      //   type: "gif",
+      //   base: "cat-hiding",
+      //   max_frames: 60,
+      //   delay_sec: "0.08s"
+    }, {
+      type: "gif",
+      base: "waterfall",
+      max_frames: 44,
+      delay_sec: "0.03s"
+    }, {
+      type: "image",
+      filename: "niagarafalls.jpg"
+    }, {
+      type: "image",
+      filename: "cornell.webp"
+    }, {
+      type: "image",
+      filename: "library.webp"
+    }
+    ]
+
+    const mediaVars = {
+      mediaIndex: 0,
+      frame: 0, // only for gifs
+      updateShowingText() {
+        const med = media[this.mediaIndex];
+        document.getElementById("imageName").innerText = "Now showing: " + (med.type == "gif" ? med.base : med.filename);
+      },
+      decIndex() {
+        this.mediaIndex = (this.mediaIndex + media.length - 1) % media.length;
+        this.updateShowingText();
+        frame = 0;
+      },
+      incIndex() {
+        this.mediaIndex = (this.mediaIndex + 1) % media.length;
+        this.updateShowingText();
+        frame = 0;
+      },
+      getPath() {
+        const med = media[this.mediaIndex];
+        if (med.type == "gif") {
+          this.frame = (this.frame + 1) % med.max_frames;
+          if (this.frame < 10) {
+            return "./" + med.base + "/frame_0" + this.frame + "_delay-" + med.delay_sec + ".gif";
+          }
+          return "./" + med.base + "/frame_" + this.frame + "_delay-" + med.delay_sec + ".gif";
+        } else { // must be image 
+          return this.imgBase + med.filename;
+        }
+      },
+      imgBase: "./static/images/"
+    }
+
 
     document.addEventListener('keydown', (e) => {
       switch (e.key) {
@@ -62,14 +137,10 @@
         case "ArrowDown":
           RADIUS -= 50; break;
         case "ArrowLeft":
-          imgIndex = (imgIndex + imgs.length - 1)%imgs.length;
-          myimage = new Image();
-          myimage.src = imgBase+"/"+imgs[imgIndex];
+          mediaVars.decIndex();
           break;
         case "ArrowRight":
-          imgIndex = (imgIndex + 1)%imgs.length;
-          myimage = new Image();
-          myimage.src = imgBase+"/"+imgs[imgIndex];
+          mediaVars.incIndex();
           break;
       }
     })
@@ -80,12 +151,14 @@
 
     // load image
     var myimage = new Image();
-    myimage.src = imgBase+"/"+imgs[imgIndex]
+    myimage.src = mediaVars.getPath();
+    mediaVars.updateShowingText();
+
 
     function gray(center) {
       // calculate width/height of the viewport
-      let vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0)
-      let vh = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0)
+      var vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0)
+      var vh = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0)
 
       // set canvas to the width/height
       cnv.width = vw;
@@ -95,22 +168,39 @@
       cnx.drawImage(myimage, 0, 0, vw, vh)
       var imgPixels = cnx.getImageData(0, 0, cnx.canvas.clientWidth, cnx.canvas.clientHeight)
 
-      // set the desaturated portion
       const HEIGHT = cnx.canvas.clientHeight;
       const WIDTH = cnx.canvas.clientWidth;
+
+      const featherWidth = 400; // how soft the fade is
+
       for (var y = 0; y < HEIGHT; y++) {
         for (var x = 0; x < WIDTH; x++) {
-          let dist = Math.pow((Math.pow((y - center.y), 2) + Math.pow((x - center.x), 2)), 0.5);
+          var dx = x - center.x;
+          var dy = y - center.y;
+          var dist = Math.sqrt(dx * dx + dy * dy);
+
+          const i = (y * WIDTH + x) * 4;
 
           if (dist > RADIUS) {
-            var i = (y * 4) * WIDTH + x * 4;
-            var avg = (imgPixels.data[i] + imgPixels.data[i + 1] + imgPixels.data[i + 2]) / 3;
-            imgPixels.data[i] = avg;
-            imgPixels.data[i + 1] = avg;
-            imgPixels.data[i + 2] = avg; // 0: r, 1: g, 2: b, 3: transparency (0-255, 255 is visible)
+            // how far into the fade region we are (0 → 1)
+            var t = (dist - RADIUS) / featherWidth;
+            if (t > 1) t = 1;      // fully desaturated
+            if (t < 0) t = 0;
+
+            // grayscale value
+            const r = imgPixels.data[i];
+            const g = imgPixels.data[i + 1];
+            const b = imgPixels.data[i + 2];
+            const grayVal = (r + g + b) / 3;
+
+            // linear blend: original * (1 - t) + grayVal * t
+            imgPixels.data[i] = r * (1 - t) + grayVal * t;
+            imgPixels.data[i + 1] = g * (1 - t) + grayVal * t;
+            imgPixels.data[i + 2] = b * (1 - t) + grayVal * t;
           }
         }
       }
+
 
       // put new img
       cnx.putImageData(imgPixels, 0, 0, 0, 0, imgPixels.width, imgPixels.height);
@@ -119,6 +209,9 @@
     myimage.onload = () => {
       gray({ x: 0, y: 0 })
     }
+
+    var queue_maxlen = 10;
+    var queue = []
 
     // set circle to gaze
     window.onload = function () {
@@ -133,10 +226,24 @@
           return;
         }
 
-        gray(data)
-        console.log(RADIUS)
+        myimage = new Image();
+        myimage.src = mediaVars.getPath();
+        console.log(myimage) // don't remove, needs to be here for some reason
+        queue.push(data)
 
-        console.log('x:', data.x, 'y:', data.y, 't:', elapsedTime);
+        // if the queue is larger, remove the oldest data value
+        if (queue.length > queue_maxlen) {
+          queue.shift()
+        }
+
+        var avgData = {
+          x: queue.reduce((acc, curr) => acc + curr.x, 0) / queue.length,
+          y: queue.reduce((acc, curr) => acc + curr.y, 0) / queue.length,
+        }
+
+        gray(avgData)
+
+        // console.log('x:', data.x, 'y:', data.y, 't:', elapsedTime);
       }).begin();
     };
   </script>
@@ -158,6 +265,8 @@
       visibility: hidden !important;
     }
   </style>
+  <script type="text/javascript" src="./js/typescript.min.js"></script>
+  <script type="text/javascript" src="./js/typescript.compile.min.js"></script>
 </body>
 
 </html>
